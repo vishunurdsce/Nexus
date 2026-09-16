@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from typing import List
-
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -41,13 +41,13 @@ class Settings(BaseSettings):
     qdrant_collection: str = "nexus_chunks"
     upload_dir: str = "/data/uploads"
     max_upload_mb: int = 50
-    ollama_embed_model: str = "nomic-embed-text"
-    ollama_vision_model: str = "llava:7b"
-    enable_vision: bool = False
-    embed_dim: int = 768
-    qdrant_collection: str = "nexus_chunks"
-    upload_dir: str = "/data/uploads"
-    max_upload_mb: int = 50
+
+    @field_validator("max_upload_mb")
+    @classmethod
+    def validate_max_upload(cls, v: int) -> int:
+        if v <= 0:
+            raise ValueError("max_upload_mb must be greater than 0")
+        return v
 
     @property
     def cors_list(self) -> List[str]:
