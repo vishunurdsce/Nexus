@@ -20,16 +20,16 @@ class Settings(BaseSettings):
     )
 
     # Environment mode
-    app_env: str = "development"
+    app_env: str = "production"
 
     # Database & Services
-    database_url: str
+    database_url: str = "postgresql+asyncpg://postgres:password@localhost:5432/nexus"
     redis_url: str = "redis://localhost:6379/0"
     qdrant_url: str = "http://localhost:6333"
     ollama_url: str = "http://localhost:11434"
 
     # Security & Authentication
-    jwt_secret: str
+    jwt_secret: str = "dev-only-change-me"
     cookie_secure: bool = False
     chat_cookie: str = "nexus_chat"
     admin_cookie: str = "nexus_admin"
@@ -37,7 +37,7 @@ class Settings(BaseSettings):
 
     # Admin Bootstrap
     admin_bootstrap_email: str = "admin@nexus.local"
-    admin_bootstrap_password: str
+    admin_bootstrap_password: str = "ChangeMeNow!"
 
     # CORS & Origins
     chat_origin: str = "http://localhost:8080"
@@ -71,6 +71,11 @@ class Settings(BaseSettings):
             "ChangeMeNow!",
             "change-this-db-password",
             "replace-with-64-char-random-string",
+            "your_long_random_secret",
+            "password",
+            "secret",
+            "admin",
+            "change_me",
         }
 
         if self.app_env.lower() != "development":
