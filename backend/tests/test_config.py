@@ -11,11 +11,13 @@ def test_development_allows_default_fallback_values():
     assert settings.admin_bootstrap_password == "ChangeMeNow!"
 
 
-def test_default_app_env_is_production():
+def test_default_app_env_is_production(monkeypatch):
     """Verify default app_env is production and fails closed without configuration."""
+    monkeypatch.delenv("APP_ENV", raising=False)
+    assert Settings.model_fields["app_env"].default == "production"
     with pytest.raises(ValueError) as exc_info:
         # Default app_env is production, which detects default insecure credentials
-        Settings()
+        Settings(_env_file=None)
     assert "detected in non-development mode" in str(exc_info.value)
 
 
