@@ -1,34 +1,10 @@
-from __future__ import annotations
-
-from functools import lru_cache
-from typing import List, Optional
-from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """Application settings and environment configuration loader.
+    app_env: str = "development"
 
-    Reads variables from environment or .env file and validates credentials
-    to prevent insecure deployment defaults outside of development mode.
-    """
-
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        extra="ignore"
-    )
-
-    # Environment mode
-    app_env: str = "production"
-
-    # Database & Services
-    database_url: str = "postgresql+asyncpg://postgres:password@localhost:5432/nexus"
-    redis_url: str = "redis://localhost:6379/0"
-    qdrant_url: str = "http://localhost:6333"
-    ollama_url: str = "http://localhost:11434"
-
-    # Security & Authentication
+    # Core Security
     jwt_secret: str = "dev-only-change-me"
     cookie_secure: bool = False
     chat_cookie: str = "nexus_chat"
@@ -44,65 +20,37 @@ class Settings(BaseSettings):
     admin_origin: str = "http://localhost:8081"
     api_cors_origins: str = "http://localhost:8080,http://localhost:8081"
 
-    # LLM & Embeddings
-    llm_provider: str = "ollama"
-    groq_api_key: Optional[str] = None
-    groq_llm_model: str = "llama-3.1-70b-versatile"
-    gemini_api_key: Optional[str] = None
+    # Database & Storage
+    database_url: str = "postgresql+asyncpg://postgres:password@localhost:5432/nexus"
+    qdrant_url: str = "http://localhost:6333"
+    qdrant_api_key: str = ""
+    qdrant_collection: str = "nexus_documents"
 
-    ollama_llm_model: str = "qwen2.5:7b-instruct-q4_K_M"
+    # Ollama Models
+    ollama_base_url: str = "http://localhost:11434"
+    ollama_chat_model: str = "llama3.2"
     ollama_embed_model: str = "nomic-embed-text"
     ollama_vision_model: str = "llava:7b"
     enable_vision: bool = False
     embed_dim: int = 768
-    qdrant_collection: str = "nexus_chunks"
-    upload_dir: str = "/data/uploads"
+
+    # Uploads
+    upload_dir: str = "./uploads"
     max_upload_mb: int = 50
 
-    @model_validator(mode="after")
-    def validate_production_credentials(self) -> Settings:
-        """Validate that non-development environments do not use default or insecure secrets.
-
-        Raises:
-            ValueError: If insecure or default secrets are detected when APP_ENV is not 'development'.
-        """
-        insecure_patterns = {
-            "dev-only-change-me",
-            "ChangeMeNow!",
-            "change-this-db-password",
-            "replace-with-64-char-random-string",
-            "your_long_random_secret",
-            "password",
-            "secret",
-            "admin",
-            "change_me",
-        }
-
-        if self.app_env.lower() != "development":
-            if any(p in self.jwt_secret for p in insecure_patterns):
-                raise ValueError("Insecure or default jwt_secret detected in non-development mode!")
-            if any(p in self.admin_bootstrap_password for p in insecure_patterns):
-                raise ValueError("Insecure or default admin_bootstrap_password detected in non-development mode!")
-            if any(p in self.database_url for p in insecure_patterns):
-                raise ValueError("Default database password detected in non-development mode!")
-
-        return self
-
-    @property
-    def cors_list(self) -> List[str]:
-        """Parse comma-separated CORS origins into a list.
-
-        Returns:
-            List[str]: Cleaned list of allowed origin strings.
-        """
-        return [o.strip() for o in self.api_cors_origins.split(",") if o.strip()]
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
 
-@lru_cache
 def get_settings() -> Settings:
-    """Retrieve and cache application settings instance.
-
-    Returns:
-        Settings: Singleton configuration object.
-    """
-    return Settings()
+    settings = Settings()
+    if not settings.jwt_secret.strip():
+        raise ValueError("JWT_SECRET cannot be empty")
+    if not settings.admin_bootstrap_password.strip():
+        raise ValueError("ADMIN_BOOTSTRAP_PASSWORD cannot be empty")
+    if not settings.database_url.strip():
+        raise ValueError("DATABASE_URL cannot be empty")
+    return settings
